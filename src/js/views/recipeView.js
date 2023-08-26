@@ -11,8 +11,6 @@ class RecipeView {
 
     this.#clear();
     this.#parentElement.insertAdjacentHTML('afterbegin', markup);
-
-    console.log('this.data: ' + this.#data);
   }
 
   #clear() {
