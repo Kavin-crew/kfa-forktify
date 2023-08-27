@@ -128,6 +128,12 @@ class RecipeView {
             </div>
           </li>`;
   }
+
+  // publisher subscriber pattern
+  addHandleRender(handler) {
+    ['hashchange', 'load'].forEach(ev => window.addEventListener(ev, handler));
+    // window.addEventListener('hashchange', controlRecipes);
+  }
 }
 
 export default new RecipeView();
