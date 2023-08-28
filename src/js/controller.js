@@ -2,6 +2,7 @@ import { async } from 'regenerator-runtime';
 import * as model from './model.js';
 
 import recipeView from './views/recipeView.js';
+import resultsView from './views/resultsView.js';
 
 //polifilling everything to old js version
 import 'core-js/stable';
@@ -14,6 +15,11 @@ const recipeContainer = document.querySelector('.recipe');
 // https://forkify-api.herokuapp.com/v2
 
 ///////////////////////////////////////
+
+// from parcel
+if (module.hot) {
+  module.hot.accept();
+}
 
 const controlRecipes = async function () {
   try {
@@ -41,11 +47,13 @@ const controlSearchResults = async function () {
     // 1. Get search query
     const query = searchView.getQuery();
     if (!query) return;
+    resultsView.renderSpinner();
 
     // 2. Load search results
     await model.loadSearchResults(query);
 
     console.log(model.state.search.results);
+    resultsView.render(model.state.search.results);
   } catch (error) {
     throw error;
   }
