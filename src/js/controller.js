@@ -1,3 +1,4 @@
+import { async } from 'regenerator-runtime';
 import * as model from './model.js';
 
 import recipeView from './views/recipeView.js';
@@ -6,6 +7,7 @@ import recipeView from './views/recipeView.js';
 import 'core-js/stable';
 // polifilling async await
 import 'regenerator-runtime/runtime';
+import searchView from './views/searchView.js';
 
 const recipeContainer = document.querySelector('.recipe');
 
@@ -34,8 +36,24 @@ const controlRecipes = async function () {
 
 controlRecipes();
 
+const controlSearchResults = async function () {
+  try {
+    // 1. Get search query
+    const query = searchView.getQuery();
+    if (!query) return;
+
+    // 2. Load search results
+    await model.loadSearchResults(query);
+
+    console.log(model.state.search.results);
+  } catch (error) {
+    throw error;
+  }
+};
+
 // publisher subscriber pattern
 const init = function () {
   recipeView.addHandleRender(controlRecipes);
+  searchView.addHandlerSearch(controlSearchResults);
 };
 init();
