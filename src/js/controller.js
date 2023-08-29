@@ -1,14 +1,15 @@
 import { async } from 'regenerator-runtime';
 import * as model from './model.js';
 
+import searchView from './views/searchView.js';
 import recipeView from './views/recipeView.js';
 import resultsView from './views/resultsView.js';
+import paginationView from './views/paginationView.js';
 
 //polifilling everything to old js version
 import 'core-js/stable';
 // polifilling async await
 import 'regenerator-runtime/runtime';
-import searchView from './views/searchView.js';
 
 const recipeContainer = document.querySelector('.recipe');
 
@@ -39,7 +40,6 @@ const controlRecipes = async function () {
     recipeView.renderError();
   }
 };
-
 controlRecipes();
 
 const controlSearchResults = async function () {
@@ -55,14 +55,27 @@ const controlSearchResults = async function () {
     // 3. Render results
     // resultsView.render(model.state.search.results);
     resultsView.render(model.getSearchResultsPage());
+
+    // 4. Render pagination
+    //  pass the results to its view so we can determine the number of pages
+    paginationView.render(model.state.search);
   } catch (error) {
     throw error;
   }
+};
+
+const controlPagination = function (goToPage) {
+  // 1. Render NEW results
+  resultsView.render(model.getSearchResultsPage(goToPage));
+
+  // 2. Render NEW pagination
+  paginationView.render(model.state.search);
 };
 
 // publisher subscriber pattern
 const init = function () {
   recipeView.addHandleRender(controlRecipes);
   searchView.addHandlerSearch(controlSearchResults);
+  paginationView.addHandlerClick(controlPagination);
 };
 init();

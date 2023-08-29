@@ -1,6 +1,7 @@
 import icons from 'url:../../img/icons.svg';
 
 export default class View {
+  // all properties and methods will be available to its child class
   _data;
 
   render(data) {
