@@ -28,8 +28,10 @@ const controlRecipes = async function () {
     const id = window.location.hash.slice(1);
 
     if (!id) return;
-
     recipeView.renderSpinner(recipeContainer);
+
+    // update results view to mark selected search  result
+    resultsView.update(model.getSearchResultsPage());
 
     // loading recipe from model
     await model.loadRecipe(id);
@@ -77,7 +79,8 @@ const controlServings = function (newServings) {
   model.updateServings(newServings);
 
   // update the view
-  recipeView.render(model.state.recipe);
+  // recipeView.render(model.state.recipe);
+  recipeView.update(model.state.recipe);
 };
 
 // publisher subscriber pattern
