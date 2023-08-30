@@ -664,12 +664,14 @@ const controlBookmarks = function() {
 const controlAddRecipe = async function(newRecipe) {
     try {
         //show loading spinner
-        // addRecipeView.renderSpinner();
+        (0, _addRecipeViewJsDefault.default).renderSpinner();
         // upload new recipe
         await _modelJs.uploadRecipe(newRecipe);
         // render the recipe
         (0, _recipeViewJsDefault.default).render(_modelJs.state.recipe);
         (0, _bookmarksViewJsDefault.default).render(_modelJs.state.bookmarks);
+        // change ID in the url
+        window.history.pushState(null, "", `#${_modelJs.state.recipe.id}`);
         // success message
         (0, _addRecipeViewJsDefault.default).renderMessage();
         // close the form window
@@ -692,7 +694,7 @@ const init = function() {
 };
 init();
 
-},{"core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./model.js":"Y4A21","./views/recipeView.js":"l60JC","regenerator-runtime":"dXNgZ","./views/searchView.js":"9OQAM","./views/resultsView.js":"cSbZE","./views/paginationView.js":"6z7bi","./views/bookmarksView.js":"4Lqzq","./views/addRecipeView.js":"i6DNj","./config.js":"k5Hzs"}],"49tUX":[function(require,module,exports) {
+},{"core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./model.js":"Y4A21","./views/recipeView.js":"l60JC","regenerator-runtime":"dXNgZ","./views/searchView.js":"9OQAM","./views/resultsView.js":"cSbZE","./views/paginationView.js":"6z7bi","./config.js":"k5Hzs","./views/bookmarksView.js":"4Lqzq","./views/addRecipeView.js":"i6DNj"}],"49tUX":[function(require,module,exports) {
 "use strict";
 // TODO: Remove this module from `core-js@4` since it's split to modules listed below
 require("52e9b3eefbbce1ed");
@@ -2564,6 +2566,7 @@ parcelHelpers.export(exports, "deleteBookmark", ()=>deleteBookmark);
 parcelHelpers.export(exports, "uploadRecipe", ()=>uploadRecipe);
 var _regeneratorRuntime = require("regenerator-runtime");
 var _config = require("./config");
+// import { getJSON, sendJSON } from './helpers';
 var _helpers = require("./helpers");
 const state = {
     recipe: {},
@@ -2595,7 +2598,7 @@ const createRecipeObject = function(data) {
 };
 const loadRecipe = async function(id) {
     try {
-        const data = await (0, _helpers.getJSON)(`${(0, _config.API_URL)}${id}`);
+        const data = await (0, _helpers.AJAX)(`${(0, _config.API_URL)}${id}?key=${(0, _config.KEY)}`);
         state.recipe = createRecipeObject(data);
         // data then data object then we destructure the recipe
         if (state.bookmarks.some((bookmark)=>bookmark.id === id)) state.recipe.bookmarked = true;
@@ -2609,13 +2612,16 @@ const loadSearchResults = async function(query) {
     try {
         state.search.query = query;
         // get and make another object of search results
-        const data = await (0, _helpers.getJSON)(`${(0, _config.API_URL)}?search=${query}`);
+        const data = await (0, _helpers.AJAX)(`${(0, _config.API_URL)}?search=${query}&key=${(0, _config.KEY)}`);
         state.search.results = data.data.recipes.map((recipe)=>{
             return {
                 id: recipe.id,
                 title: recipe.title,
                 publisher: recipe.publisher,
-                image: recipe.image_url
+                image: recipe.image_url,
+                ...recipe.key && {
+                    key: recipe.key
+                }
             };
         });
         state.search.page = 1;
@@ -2660,7 +2666,7 @@ const uploadRecipe = async function(newRecipe) {
     try {
         // making a new array of ingredients, filtering those ingredients
         const ingredients = Object.entries(newRecipe).filter((entry)=>entry[0].startsWith("ingredient") && entry[1] !== "").map((ing)=>{
-            const ingArr = ing[1].replaceAll(" ", "").split(",");
+            const ingArr = ing[1].split(",").map((el)=>el.trim());
             if (ingArr.length !== 3) throw new Error("Wrong ingredient format! Please use the correct format.");
             const [quantity, unit, description] = ingArr;
             return {
@@ -2678,7 +2684,7 @@ const uploadRecipe = async function(newRecipe) {
             servings: +newRecipe.servings,
             ingredients
         };
-        const data = await (0, _helpers.sendJSON)(`${(0, _config.API_URL)}?key=${(0, _config.KEY)}`, recipe);
+        const data = await (0, _helpers.AJAX)(`${(0, _config.API_URL)}?key=${(0, _config.KEY)}`, recipe);
         // adding the new recipe in our state object
         state.recipe = createRecipeObject(data);
         // add bookmark in our new recipe
@@ -2713,8 +2719,7 @@ const MODAL_CLOSE_SEC = 2.5;
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"hGI1E":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "getJSON", ()=>getJSON);
-parcelHelpers.export(exports, "sendJSON", ()=>sendJSON);
+parcelHelpers.export(exports, "AJAX", ()=>AJAX);
 var _regeneratorRuntime = require("regenerator-runtime");
 var _config = require("./config");
 const timeout = function(s) {
@@ -2724,11 +2729,18 @@ const timeout = function(s) {
         }, s * 1000);
     });
 };
-const getJSON = async function(url) {
+const AJAX = async function(url, uploadData) {
     try {
         // 1. Loading recipe from API
+        const fetchPro = uploadData ? fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(uploadData)
+        }) : fetch(url);
         const res = await Promise.race([
-            fetch(url),
+            fetchPro,
             timeout((0, _config.TIMEOUT_SEC))
         ]);
         const data = await res.json();
@@ -2737,27 +2749,35 @@ const getJSON = async function(url) {
     } catch (error) {
         throw error;
     }
-};
-const sendJSON = async function(url, uploadData) {
-    try {
-        // 1. Loading recipe from API
-        const res = await Promise.race([
-            fetch(url, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(uploadData)
-            }),
-            timeout((0, _config.TIMEOUT_SEC))
-        ]);
-        const data = await res.json();
-        if (!res.ok) throw new Error(`${data.message} (${res.status})`);
-        return data;
-    } catch (error) {
-        throw error;
-    }
-};
+}; // export const getJSON = async function (url) {
+ //   try {
+ //     // 1. Loading recipe from API
+ //     const res = await Promise.race([fetch(url), timeout(TIMEOUT_SEC)]);
+ //     const data = await res.json();
+ //     if (!res.ok) throw new Error(`${data.message} (${res.status})`);
+ //     return data;
+ //   } catch (error) {
+ //     throw error;
+ //   }
+ // };
+ // export const sendJSON = async function (url, uploadData) {
+ //   try {
+ //     // 1. Loading recipe from API
+ //     const res = await Promise.race([
+ //       fetch(url, {
+ //         method: 'POST',
+ //         headers: { 'Content-Type': 'application/json' },
+ //         body: JSON.stringify(uploadData),
+ //       }),
+ //       timeout(TIMEOUT_SEC),
+ //     ]);
+ //     const data = await res.json();
+ //     if (!res.ok) throw new Error(`${data.message} (${res.status})`);
+ //     return data;
+ //   } catch (error) {
+ //     throw error;
+ //   }
+ // };
 
 },{"regenerator-runtime":"dXNgZ","./config":"k5Hzs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"l60JC":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
@@ -2807,8 +2827,10 @@ class RecipeView extends (0, _viewJsDefault.default) {
           </div>
         </div>
 
-        <div class="recipe__user-generated">
-
+        <div class="recipe__user-generated ${this._data.key ? "" : "hidden"}">
+          <svg>
+            <use href="${0, _iconsSvgDefault.default}#icon-user"></use>
+          </svg>
         </div>
         <button class="btn--round btn--bookmark">
           <svg class="">
@@ -3313,10 +3335,16 @@ class PreviewView extends (0, _viewJsDefault.default) {
                 <figure class="preview__fig">
                 <img src="${this._data.image}" alt="${this._data.title}" />
                 </figure>
-                <div class="preview__data">
-                <h4 class="preview__title">${this._data.title}</h4>
-                <p class="preview__publisher">${this._data.publisher}</p>
-                </div>
+                  <div class="preview__data">
+                    <h4 class="preview__title">${this._data.title}</h4>
+                    <p class="preview__publisher">${this._data.publisher}</p>
+
+                    <div class="preview__user-generated ${this._data.key ? "" : "hidden"}">
+                    <svg>
+                      <use href="${0, _iconsSvgDefault.default}#icon-user"></use>
+                    </svg>
+                  </div>
+              </div>
             </a>
         </li>
         `;
