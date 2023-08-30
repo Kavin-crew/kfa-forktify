@@ -97,8 +97,13 @@ const controlAddBookmark = function () {
   bookmarksView.render(model.state.bookmarks);
 };
 
+const controlBookmarks = function () {
+  bookmarksView.render(model.state.bookmarks);
+};
+
 // publisher subscriber pattern
 const init = function () {
+  bookmarksView.addHandlerRender(controlBookmarks);
   recipeView.addHandleRender(controlRecipes);
   recipeView.addHandlerAddBookmark(controlAddBookmark);
   recipeView.addHandlerUpdateServings(controlServings);
